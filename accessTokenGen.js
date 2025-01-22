@@ -1,16 +1,15 @@
 const querystring = require("querystring");
 
-const EBAY_API_OAUTH_URL = "https://api.sandbox.ebay.com/identity/v1/oauth2/token"; // Sandbox URL
-// Use https://api.ebay.com/identity/v1/oauth2/token for production
+const EBAY_ACCESS_TOKEN_URL = process.env.EBAY_ACCESS_TOKEN_URL;
 
-const CLIENT_ID = "Udaydewa-Udaydewa-SBX-d670cc23a-c536353c"; //eBay app's client ID
-const CLIENT_SECRET = "SBX-66290d1f1956-6ec6-4464-9e4d-61de"; //eBay app's client secret
-const REFRESH_TOKEN = "v^1.1#i^1#r^1#I^3#f^0#p^3#t^Ul4xMF85OjlDMzZCMTJCMENENUI4QzYxNUM5RDFDNzIwOEYyMzc4XzFfMSNFXjEyODQ="; // Replace token
+const EBAY_CLIENT_ID = process.env.EBAY_CLIENT_ID;
+const EBAY_CLIENT_SECRET = process.env.EBAY_CLIENT_SECRET;
+const EBAY_REFRESH_TOKEN = process.env.EBAY_REFRESH_TOKEN;
 
 async function generateAccessToken(refreshToken) {
     try {
         // Encoding client ID and secret for Basic Auth
-        const encodedCredentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
+        const encodedCredentials = Buffer.from(`${EBAY_CLIENT_ID}:${EBAY_CLIENT_SECRET}`).toString("base64");
 
         // Setting up the request payload
         const body = querystring.stringify({
@@ -20,7 +19,7 @@ async function generateAccessToken(refreshToken) {
         });        
 
         // Sending the request to eBay's API
-        const response = await fetch(EBAY_API_OAUTH_URL, {
+        const response = await fetch(EBAY_ACCESS_TOKEN_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
@@ -47,4 +46,4 @@ async function generateAccessToken(refreshToken) {
 }
 
 // Call the function
-generateAccessToken(REFRESH_TOKEN);
+generateAccessToken(EBAY_REFRESH_TOKEN);

@@ -1,4 +1,0 @@
-// https://auth.sandbox.ebay.com/oauth2/authorize?client_id=EssenseW-costcoau-SBX-d3af4a892-aa43de13&redirect_uri=Essense_World_L-EssenseW-costco-ldyfvkds&response_type=code&scope=https://api.ebay.com/oauth/api_scope/sell.inventory
-
-
-// https://auth.sandbox.ebay.com/oauth2/authorize?client_id=Udaydewa-Udaydewa-SBX-d670cc23a-c536353c&response_type=code&redirect_uri=Udaydewasi-Udaydewa-Udayde-sqwetjfbx&scope=https://api.ebay.com/oauth/api_scope+https://api.ebay.com/oauth/api_scope/sell.fulfillment+https://api.ebay.com/oauth/api_scope/sell.inventory+https://api.ebay.com/oauth/api_scope/sell.finances&state=State

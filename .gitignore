@@ -1,2 +1,10 @@
 # ignore the node_modules
 node_modules
+
+codeGeneration.txt
+
+sandbox_sku_creation_results.json
+
+sku_results.json
+
+skus.txt
