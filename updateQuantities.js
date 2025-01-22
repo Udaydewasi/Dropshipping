@@ -1,5 +1,7 @@
+const fs = require("fs");
+
 const EBAY_API_URL = "https://api.sandbox.ebay.com/sell/inventory/v1/inventory_item";
-const EBAY_TOKEN = "v^1.1#i^1#r^0#p^3#I^3#f^0#t^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"; // eBay Sandbox OAuth token
+const EBAY_TOKEN = "v^1.1#i^1#r^0#I^3#f^0#p^3#t^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"; // eBay Sandbox OAuth token
 
 
 async function updateEbayItemQuantity(sku, quantity) {
@@ -44,4 +46,27 @@ async function updateEbayItemQuantity(sku, quantity) {
     }
 }
 
-updateEbayItemQuantity("469831", 20);
+async function processSkuResults(filePath) {
+    try {
+        const skuResults = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+
+        const results = [];
+        for (const { sku, quantity } of skuResults) {
+            if (quantity === null || quantity < 0) {
+                console.log(`Skipping SKU: ${sku} due to invalid quantity`);
+                continue;
+            }
+
+            const result = await updateEbayItemQuantity(sku, quantity);
+            results.push(result);
+        }
+
+        console.log("All SKUs processed:");
+
+        fs.writeFileSync("sandbox_sku_creation_results.json", JSON.stringify(results, null, 2));
+    } catch (error) {
+        console.error("Error processing SKU results file:", error.message);
+    }
+}
+
+processSkuResults("sku_results.json");
