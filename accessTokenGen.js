@@ -1,0 +1,50 @@
+const querystring = require("querystring");
+
+const EBAY_API_OAUTH_URL = "https://api.sandbox.ebay.com/identity/v1/oauth2/token"; // Sandbox URL
+// Use https://api.ebay.com/identity/v1/oauth2/token for production
+
+const CLIENT_ID = "Udaydewa-Udaydewa-SBX-d670cc23a-c536353c"; //eBay app's client ID
+const CLIENT_SECRET = "SBX-66290d1f1956-6ec6-4464-9e4d-61de"; //eBay app's client secret
+const REFRESH_TOKEN = "v^1.1#i^1#r^1#I^3#f^0#p^3#t^Ul4xMF85OjlDMzZCMTJCMENENUI4QzYxNUM5RDFDNzIwOEYyMzc4XzFfMSNFXjEyODQ="; // Replace token
+
+async function generateAccessToken(refreshToken) {
+    try {
+        // Encoding client ID and secret for Basic Auth
+        const encodedCredentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
+
+        // Setting up the request payload
+        const body = querystring.stringify({
+            grant_type: "refresh_token",
+            refresh_token: refreshToken,
+            scope: "https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.fulfillment https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.finances"
+        });        
+
+        // Sending the request to eBay's API
+        const response = await fetch(EBAY_API_OAUTH_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Authorization": `Basic ${encodedCredentials}`
+            },
+            body: body
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            console.error("Error generating access token:", error);
+            return null;
+        }
+
+        const data = await response.json();
+        console.log("Access Token Generated Successfully!");
+        console.log("Access Token:", data.access_token);
+        console.log("Expires in:", data.expires_in, "seconds");
+        return data.access_token;
+    } catch (error) {
+        console.error("Error generating access token:", error.message);
+        return null;
+    }
+}
+
+// Call the function
+generateAccessToken(REFRESH_TOKEN);
