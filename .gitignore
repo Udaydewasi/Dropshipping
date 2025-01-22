@@ -1,6 +1,8 @@
 # ignore the node_modules
 node_modules
 
+.env
+
 codeGeneration.txt
 
 sandbox_sku_creation_results.json
