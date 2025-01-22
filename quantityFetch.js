@@ -1,9 +1,10 @@
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 
 async function fetchProductQuantity(sku) {
-    const baseUrl = "https://www.costco.co.uk/rest/v2/uk/products";
-    const url = `${baseUrl}/${sku}/?fields=stock`;
+    const QUANTITY_FETCH_URL = process.env.QUANTITY_FETCH_URL;
+    const url = `${QUANTITY_FETCH_URL}/${sku}/?fields=stock`;
 
     try {
         const response = await fetch(url);
