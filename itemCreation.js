@@ -35,11 +35,12 @@ async function createEbaySku(sku, quantity) {
 
     try {
         const response = await fetch(EBAY_ITEM_CREATION_URL, {
-            method: "POST",
+            method: "PUT",
             headers: {
                 "Authorization": `Bearer ${EBAY_ACCESS_TOKEN}`,
                 "Content-Type": "application/json",
-                "Accept-Language": "en-GB"
+                "Accept-Language": "en-GB",
+                "Content-Language": "en-GB"
             },
             body: JSON.stringify(requestBody)
         });
@@ -58,28 +59,30 @@ async function createEbaySku(sku, quantity) {
     }
 }
 
-async function processSkuResults(filePath) {
-    try {
-        const skuResults = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+createEbaySku("TEST_SKU_111", 0);
 
-        const results = [];
-        for (const { sku, quantity } of skuResults) {
-            if (quantity === null || quantity < 0) {
-                console.log(`Skipping SKU: ${sku} due to invalid quantity`);
-                continue;
-            }
+// async function processSkuResults(filePath) {
+//     try {
+//         const skuResults = JSON.parse(fs.readFileSync(filePath, "utf-8"));
 
-            const result = await createEbaySku(sku, quantity);
-            results.push(result);
-        }
+//         const results = [];
+//         for (const { sku, quantity } of skuResults) {
+//             if (quantity === null || quantity < 0) {
+//                 console.log(`Skipping SKU: ${sku} due to invalid quantity`);
+//                 continue;
+//             }
 
-        console.log("All SKUs processed:");
+//             const result = await createEbaySku(sku, quantity);
+//             results.push(result);
+//         }
 
-        fs.writeFileSync("sandbox_sku_creation_results.json", JSON.stringify(results, null, 2));
-    } catch (error) {
-        console.error("Error processing SKU results file:", error.message);
-    }
-}
+//         console.log("All SKUs processed:");
 
-//call to function with the input file
-processSkuResults("sku_results.json");
+//         fs.writeFileSync("sandbox_sku_creation_results.json", JSON.stringify(results, null, 2));
+//     } catch (error) {
+//         console.error("Error processing SKU results file:", error.message);
+//     }
+// }
+
+// //call to function with the input file
+// processSkuResults("sku_results.json");
