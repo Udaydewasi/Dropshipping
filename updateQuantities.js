@@ -28,19 +28,12 @@ async function updateEbayItemQuantity(sku, quantity) {
         });
 
         const responseText = await response.text();
-        console.log("Raw response:", responseText);
 
         if (!responseText) {
-            console.error(`Empty response received for SKU ${sku}`);
-            return;
-        }
-        
-        const data = await response.json();
-
-        if (!response.ok) {
-            console.error(`Error updating SKU ${sku}:`, data);
-        } else {
             console.log(`Successfully updated SKU ${sku} with quantity ${quantity}`);
+            return;
+        }else {
+            console.error(`Error while updating quantity for ${sku}`);
         }
     } catch (error) {
         console.error(`Error making API request for SKU ${sku}:`, error.message);
@@ -54,8 +47,8 @@ async function processSkuResults(filePath) {
         const results = [];
         for (const { sku, quantity } of skuResults) {
             if (quantity === null || quantity < 0) {
-                console.log(`Skipping SKU: ${sku} due to invalid quantity`);
-                continue;
+                console.log(`changed the quantity SKU: ${sku} due to invalid quantity`);
+                quantity = 0;
             }
 
             const result = await updateEbayItemQuantity(sku, quantity);

@@ -1,4 +1,5 @@
 const querystring = require("querystring");
+require('dotenv').config();
 
 const EBAY_ACCESS_TOKEN_URL = process.env.EBAY_ACCESS_TOKEN_URL;
 
