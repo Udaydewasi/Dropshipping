@@ -1,6 +1,6 @@
 require("dotenv").config();
 
-const EBAY_INVENTORY_URL = "https://api.ebay.com/sell/inventory/v1/inventory_item/test-sku-001";
+const EBAY_INVENTORY_URL = "https://api.ebay.com/sell/inventory/v1/inventory_item";
 const EBAY_OFFER_URL = "https://api.ebay.com/sell/inventory/v1/offer";
 const EBAY_ACCESS_TOKEN = process.env.EBAY_ACCESS_TOKEN;
 
@@ -14,23 +14,23 @@ async function createInventoryItem(sku, title, description, price, quantity, ima
             "description": description,
             "aspects": {
                 "Brand": ["Generic"],
-                "Country/Region of Manufacture": [
-                        "England"
-                ]
+                "Country/Region of Manufacture": ["China"]
             },
             "imageUrls": [imageUrl],
         },
         "availability": {
             "shipToLocationAvailability": {
                 "quantity": quantity,
+                "shipToLocationCountry": "GB",
             },
         },
         "condition": condition,
-        "category": categoryID
-    };
+        "category": categoryID,
+        "merchantLocationKey": "GB_LONDON"
+    };    
 
     try {
-        const response = await fetch(EBAY_INVENTORY_URL, {
+        const response = await fetch(`${EBAY_INVENTORY_URL}/${sku}`, {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${EBAY_ACCESS_TOKEN}`,
@@ -61,11 +61,11 @@ async function createOffer(sku, marketplaceID, price) {
         "sku": sku,
         "marketplaceId": marketplaceID,
         "format": "FIXED_PRICE",
-        "availableQuantity": 0,
+        "availableQuantity": 1,
         "listingPolicies": {
-            "fulfillmentPolicyId": process.env.FULFILLMENT_POLICY_ID,
             "paymentPolicyId": process.env.PAYMENT_POLICY_ID,
             "returnPolicyId": process.env.RETURN_POLICY_ID,
+            "fulfillmentPolicyId": process.env.FULFILLMENT_POLICY_ID,
         },
         "pricingSummary": {
             "price": {
@@ -73,7 +73,10 @@ async function createOffer(sku, marketplaceID, price) {
                 "currency": "GBP",
             },
         },
+        "categoryId": "261699",
+        "merchantLocationKey": "GB_LONDON",
         "quantityLimitPerBuyer": 1,
+        "includeCatalogProductDetails": true,
     };
 
     try {
@@ -109,6 +112,8 @@ async function publishOffer(offerId) {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${EBAY_ACCESS_TOKEN}`,
+                "Accept-Language": "en-GB",
+                "Content-Language": "en-GB"
             },
         });
 
@@ -135,17 +140,17 @@ async function createAndPublishItem({
     quantity,
     imageUrl,
     categoryID,
-    condition = "NEW",
+    condition,
     marketplaceID = "EBAY_GB",
 }) {
     console.log("Starting the process to create and publish an item...");
 
     // Step 1: Create Inventory Item
-    // const inventoryResult = await createInventoryItem(sku, title, description, price, quantity, imageUrl, categoryID, condition);
-    // if (!inventoryResult.success) {
-    //     console.error("Failed to create inventory item. Exiting...");
-    //     return;
-    // }
+    const inventoryResult = await createInventoryItem(sku, title, description, price, quantity, imageUrl, categoryID, condition);
+    if (!inventoryResult.success) {
+        console.error("Failed to create inventory item. Exiting...");
+        return;
+    }
 
     // Step 2: Create Offer
     const offerResult = await createOffer(sku, marketplaceID, price);
@@ -155,6 +160,7 @@ async function createAndPublishItem({
     }
 
     // Step 3: Publish Offer
+    console.log(offerResult.offerId);
     const publishResult = await publishOffer(offerResult.offerId);
     if (!publishResult.success) {
         console.error("Failed to publish offer. Exiting...");
@@ -166,13 +172,13 @@ async function createAndPublishItem({
 
 // Example Usage
 const itemData = {
-    sku: "test-sku-001",
-    title: "Sample Product for eBay",
+    sku: "testsku6",
+    title: "TEST Product for eBay",
     description: "This is a sample product created via eBay API.",
     price: 19.99,
-    quantity: 0,
+    quantity: 1,
     imageUrl: "https://www.shutterstock.com/image-vector/household-appliances-on-white-background-vector-2474228997",
-    categoryID: "9355", //category: Electronics
+    categoryID: "261699",
     condition: "NEW",
 };
 

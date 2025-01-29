@@ -7,12 +7,17 @@ const EBAY_ACCESS_TOKEN = process.env.EBAY_ACCESS_TOKEN;
 
 async function updateEbayItemQuantity(sku, quantity) {
     const requestBody = {
-        sku,
-        availability: {
-            shipToLocationAvailability: {
-                quantity,
-            },
+        "offers": [
+        { 
+        "availableQuantity": 30,
+        "offerId": "<offer_id>",
+        "price":
+            { 
+            "currency": "USD",
+            "value": "299.0"
+            }
         },
+    ]
     };
 
     try {
