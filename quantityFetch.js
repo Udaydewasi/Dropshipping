@@ -1,9 +1,10 @@
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+require('dotenv').config({ path: '/home/uday/Dropshipping/.env' });
+const QUANTITY_FETCH_URL = process.env.QUANTITY_FETCH_URL;
+const EBAY_ACCESS_TOKEN = process.env.EBAY_ACCESS_TOKEN;
 
 async function fetchProductQuantity(sku) {
-    const QUANTITY_FETCH_URL = process.env.QUANTITY_FETCH_URL;
     const url = `${QUANTITY_FETCH_URL}/${sku}/?fields=stock`;
 
     try {
@@ -15,15 +16,30 @@ async function fetchProductQuantity(sku) {
 
         const data = await response.json();
 
+        sku = "testsku6";
+
+        const offerResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer?sku=${sku}`,{
+            method: "GET",
+            headers: {
+                Authorization: `Bearer ${EBAY_ACCESS_TOKEN}`,
+                "Accept-Language": "en-GB",
+                "Content-Language": "en-GB"
+            },
+        });
+
+        const offerData = await offerResponse.json();
+        
+        const offerId = offerData.offers[0].offerId;
+
         if (data.stock && data.stock.stockLevel !== undefined) {
-            return { sku, quantity: data.stock.stockLevel };
+            return {offerId, sku, quantity: data.stock.stockLevel };
         } else {
             console.error(`Stock information is not available for SKU: ${sku}`);
-            return { sku, quantity: null };
+            return {offerId, sku, quantity: null };
         }
     } catch (error) {
         console.error(`Error fetching product quantity for SKU: ${sku}`, error.message);
-        return {sku, quantity: null};
+        return {offerId, sku, quantity: null};
     }
 }
 

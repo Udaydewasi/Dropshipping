@@ -2,7 +2,11 @@ require("dotenv").config();
 
 const EBAY_INVENTORY_URL = "https://api.ebay.com/sell/inventory/v1/inventory_item";
 const EBAY_OFFER_URL = "https://api.ebay.com/sell/inventory/v1/offer";
-const EBAY_ACCESS_TOKEN = process.env.EBAY_ACCESS_TOKEN;
+// const EBAY_ACCESS_TOKEN = process.env.EBAY_ACCESS_TOKEN;
+const generateAccessToken = require('./accessTokenGen');
+
+//accesstoken generatoin before of the item creation
+const EBAY_ACCESS_TOKEN = generateAccessToken();
 
 // Create inventory item
 async function createInventoryItem(sku, title, description, price, quantity, imageUrl, categoryID, condition) {
@@ -172,7 +176,7 @@ async function createAndPublishItem({
 
 // Example Usage
 const itemData = {
-    sku: "testsku6",
+    sku: "",
     title: "TEST Product for eBay",
     description: "This is a sample product created via eBay API.",
     price: 19.99,

@@ -1,47 +1,65 @@
 const fs = require("fs");
-require('dotenv').config();
+require("dotenv").config({ path: '/home/uday/Dropshipping/.env' });
 
-const EBAY_QUANTITY_UPDATE_URL = process.env.EBAY_QUANTITY_UPDATE_URL;
-const EBAY_ACCESS_TOKEN = process.env.EBAY_ACCESS_TOKEN;
+const EBAY_BULK_UPDATE_URL = "https://api.ebay.com/sell/inventory/v1/bulk_update_price_quantity";
+// const EBAY_ACCESS_TOKEN = process.env.EBAY_ACCESS_TOKEN;
+const generateAccessToken = require('./accessTokenGen');
+let EBAY_ACCESS_TOKEN = null;
+async function token() {
+    try{
+        EBAY_ACCESS_TOKEN = await generateAccessToken();
+        console.log(`Access Token is : ${EBAY_ACCESS_TOKEN}`);
+    }catch{
+        console.log("Error while token genrating");
+    }
+}
 
+//accesstoken generation
+// (async () => {
+//     await token();
+// })();
 
-async function updateEbayItemQuantity(sku, quantity) {
+async function updateEbayItemQuantity(offerId, sku, quantity) {
     const requestBody = {
-        "offers": [
-        { 
-        "availableQuantity": 30,
-        "offerId": "<offer_id>",
-        "price":
-            { 
-            "currency": "USD",
-            "value": "299.0"
-            }
-        },
-    ]
+            "requests": [
+                { 
+                "offers": [
+                    { 
+                    "availableQuantity": 0,
+                    "offerId": offerId
+                    }
+                  ],
+                "shipToLocationAvailability":
+                    { 
+                    "quantity": quantity
+                    },
+                "sku": sku
+                }
+             ]
     };
 
     try {
-        const response = await fetch(`${EBAY_QUANTITY_UPDATE_URL}/${sku}`, {
-            method: "PUT",
+        const response = await fetch(EBAY_BULK_UPDATE_URL, {
+            method: "POST",
             headers: {
                 "Authorization": `Bearer ${EBAY_ACCESS_TOKEN}`,
                 "Content-Type": "application/json",
-                "Content-Language": "en-GB",
-                "Accept-Language": "en-GB"
+                "Accept-Language": "en-GB",
+                "Content-Language": "en-GB"
             },
             body: JSON.stringify(requestBody),
         });
 
-        const responseText = await response.text();
+        const responseData = await response.json();
+        console.log(responseData);
 
-        if (!responseText) {
+        if (response.ok) {
             console.log(`Successfully updated SKU ${sku} with quantity ${quantity}`);
-            return;
-        }else {
-            console.error(`Error while updating quantity for ${sku}`);
+        } else {
+            console.error(`Error while updating SKU: ${sku}`, responseData);
         }
     } catch (error) {
-        console.error(`Error making API request for SKU ${sku}:`, error.message);
+        console.error(`Error making API request for SKU: ${sku}:`, error.message);
     }
 }
 
@@ -50,22 +68,29 @@ async function processSkuResults(filePath) {
         const skuResults = JSON.parse(fs.readFileSync(filePath, "utf-8"));
 
         const results = [];
-        for (const { sku, quantity } of skuResults) {
+        for (const { offerId, sku, quantity} of skuResults) {
             if (quantity === null || quantity < 0) {
-                console.log(`changed the quantity SKU: ${sku} due to invalid quantity`);
+                console.log(`Changed the quantity for SKU: ${sku} due to invalid value`);
                 quantity = 0;
             }
 
-            const result = await updateEbayItemQuantity(sku, quantity);
-            results.push(result);
+            await updateEbayItemQuantity(offerId, sku, quantity);
+            results.push({ sku, quantity});
         }
 
-        console.log("All SKUs processed:");
-
-        fs.writeFileSync("sandbox_sku_creation_results.json", JSON.stringify(results, null, 2));
+        console.log("All SKUs processed successfully.");
+        fs.writeFileSync("quantity_update_results.json", JSON.stringify(results, null, 2));
     } catch (error) {
         console.error("Error processing SKU results file:", error.message);
     }
 }
 
-processSkuResults("sku_results.json");
+// Run the function with the SKU file
+const filePath = "/home/uday/Dropshipping/sku_results.json";
+
+// processSkuResults(filePath);
+
+(async () => {
+    await token(); // Wait for token generation
+    await processSkuResults("/home/uday/Dropshipping/sku_results.json"); // Process after token is ready
+  })();

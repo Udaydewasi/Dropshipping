@@ -7,7 +7,7 @@ const EBAY_CLIENT_ID = process.env.EBAY_CLIENT_ID;
 const EBAY_CLIENT_SECRET = process.env.EBAY_CLIENT_SECRET;
 const EBAY_REFRESH_TOKEN = process.env.EBAY_REFRESH_TOKEN;
 
-async function generateAccessToken(refreshToken) {
+async function generateAccessToken() {
     try {
         // Encoding client ID and secret for Basic Auth
         const encodedCredentials = Buffer.from(`${EBAY_CLIENT_ID}:${EBAY_CLIENT_SECRET}`).toString("base64");
@@ -15,7 +15,7 @@ async function generateAccessToken(refreshToken) {
         // Setting up the request payload
         const body = querystring.stringify({
             grant_type: "refresh_token",
-            refresh_token: refreshToken,
+            refresh_token: EBAY_REFRESH_TOKEN,
             scope: "https://api.ebay.com/oauth/api_scope https://api.ebay.com/oauth/api_scope/sell.fulfillment https://api.ebay.com/oauth/api_scope/sell.inventory https://api.ebay.com/oauth/api_scope/sell.finances"
         });        
 
@@ -37,7 +37,7 @@ async function generateAccessToken(refreshToken) {
 
         const data = await response.json();
         console.log("Access Token Generated Successfully!");
-        console.log("Access Token:", data.access_token);
+        // console.log("Access Token:", data.access_token);
         console.log("Expires in:", data.expires_in, "seconds");
         return data.access_token;
     } catch (error) {
@@ -47,4 +47,6 @@ async function generateAccessToken(refreshToken) {
 }
 
 // Call the function
-generateAccessToken(EBAY_REFRESH_TOKEN);
+// generateAccessToken();
+
+module.exports = generateAccessToken;
