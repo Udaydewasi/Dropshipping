@@ -38,7 +38,7 @@ async function generateAccessToken() {
         const data = await response.json();
         console.log("Access Token Generated Successfully!");
         // console.log("Access Token:", data.access_token);
-        console.log("Expires in:", data.expires_in, "seconds");
+        // console.log("Expires in:", data.expires_in, "seconds");
         return data.access_token;
     } catch (error) {
         console.error("Error generating access token:", error.message);

@@ -16,8 +16,6 @@ async function fetchProductQuantity(sku) {
 
         const data = await response.json();
 
-        sku = "testsku6";
-
         const offerResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer?sku=${sku}`,{
             method: "GET",
             headers: {
@@ -30,6 +28,7 @@ async function fetchProductQuantity(sku) {
         const offerData = await offerResponse.json();
         
         const offerId = offerData.offers[0].offerId;
+        console.log(offerId);
 
         if (data.stock && data.stock.stockLevel !== undefined) {
             return {offerId, sku, quantity: data.stock.stockLevel };

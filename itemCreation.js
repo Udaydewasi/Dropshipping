@@ -1,88 +1,187 @@
 require("dotenv").config();
 const fs = require("fs");
+const path = require("path");
+const axios = require("axios");
 
-const EBAY_ITEM_CREATION_URL = process.env.EBAY_ITEM_CREATION_URL;
+const EBAY_INVENTORY_URL = "https://api.ebay.com/sell/inventory/v1/inventory_item";
+const EBAY_OFFER_URL = "https://api.ebay.com/sell/inventory/v1/offer";
+// const generateAccessToken = require("./accessTokenGen");
+
+// Generate eBay Access Token
 const EBAY_ACCESS_TOKEN = process.env.EBAY_ACCESS_TOKEN;
 
-async function createEbaySku(sku, quantity) {
+// File path for item details
+const itemDetailsPath = path.join(__dirname, "item_details.json");
+
+// Function to read item details
+const readItemDetails = () => {
+    try {
+        const data = fs.readFileSync(itemDetailsPath, "utf8");
+        return JSON.parse(data);
+    } catch (error) {
+        console.error("Error reading item_details.json:", error);
+        return [];
+    }
+};
+
+// Create inventory item
+async function createInventoryItem(item) {
+    const { itemCode, title, description, roundedPrice, images, categoryId, quantity} = item;
+
+    if (!itemCode || !title || !description || !roundedPrice || !images.length || !categoryId) {
+        console.log(itemCode, title, description, price, images, categoryId);
+        console.error(`Missing required fields for item: ${itemCode}`);
+        return { success: false };
+    }
+
     const requestBody = {
-        "requests": [
-            {
-                "sku": sku,
-                "locale": "en_GB",
-                "availability": {
-                        "shipToLocationAvailability": {
-                            "quantity": quantity
-                        }
-                },
-                "product": {
-                    "title": "Boston Terriers Collector",
-                    "aspects": {
-                        "Country/Region of Manufacture": [
-                            "England"
-                        ]
-                    },
-                    "description": "All Ears by Dan Hatala. A limited edition from the collection entitled ",
-                    "imageUrls": [
-                        "https:......*....."
-                    ]
-                },
-                "condition": "NEW",
-                "conditionDescription": "Mint condition. Kept in styrofoam case. Never displayed."
-            }
-        ]
+        "sku": itemCode,
+        "locale": "en_GB",
+        "product": {
+            "title":title,
+            "description": description,
+            "aspects": {
+                "Brand": ["Generic"],
+            },
+            "imageUrls": images,
+        },
+        "availability": {
+            "shipToLocationAvailability": {
+               "quantity": quantity,
+                "shipToLocationCountry": "GB",
+            },
+        },
+        "condition": "NEW",
+        "category": categoryId,
+        "merchantLocationKey": "GB_LONDON",
     };
 
     try {
-        const response = await fetch(EBAY_ITEM_CREATION_URL, {
+        const response = await fetch(`${EBAY_INVENTORY_URL}/${itemCode}`, {
             method: "PUT",
             headers: {
-                "Authorization": `Bearer ${EBAY_ACCESS_TOKEN}`,
+                Authorization: `Bearer ${EBAY_ACCESS_TOKEN}`,
                 "Content-Type": "application/json",
                 "Accept-Language": "en-GB",
-                "Content-Language": "en-GB"
+                "Content-Language": "en-GB",
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(requestBody),
         });
 
-        if (!response.ok) {
-            const error = await response.json();
-            console.error(`Error creating SKU ${sku}:`, error);
-            return { sku, success: false, error };
-        }
-
-        console.log(`Successfully created SKU: ${sku}`);
-        return { sku, success: true };
+        console.log(`Inventory item created successfully: ${itemCode}`);
+        return { success: true };
     } catch (error) {
-        console.error(`Unexpected error creating SKU ${sku}:`, error.message);
-        return { sku, success: false, error: error.message };
+        console.error(`Error creating inventory item for SKU: ${itemCode}`, error.response?.data || error.message);
+        return { success: false, error: error.message };
     }
 }
 
-createEbaySku("TEST_SKU_111", 0);
+// Create an offer for the item
+async function createOffer(item) {
+    const { itemCode, roundedPrice, categoryId, quantity } = item;
+    let stockQuantity = quantity - 10;
+    if(stockQuantity <= 10){
+        stockQuantity = 0;
+    }else{
+        stockQuantity -= 10;
+    }
 
-// async function processSkuResults(filePath) {
-//     try {
-//         const skuResults = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    const requestBody = {
+        "sku": itemCode,
+        "marketplaceId": "EBAY_GB",
+        "format": "FIXED_PRICE",
+        "availableQuantity": stockQuantity,
+        "listingPolicies": {
+            "paymentPolicyId": process.env.PAYMENT_POLICY_ID,
+            "returnPolicyId": process.env.RETURN_POLICY_ID,
+            "fulfillmentPolicyId": process.env.FULFILLMENT_POLICY_ID,
+        },
+        "pricingSummary": {
+            "price": {
+                "value": roundedPrice,
+                "currency": "GBP",
+            },
+        },
+        "categoryId": categoryId,
+        "merchantLocationKey": "GB_LONDON",
+        "quantityLimitPerBuyer": 1,
+        "includeCatalogProductDetails": true,
+    };
 
-//         const results = [];
-//         for (const { sku, quantity } of skuResults) {
-//             if (quantity === null || quantity < 0) {
-//                 console.log(`Skipping SKU: ${sku} due to invalid quantity`);
-//                 continue;
-//             }
+    try {
+        const response = await axios.post(`${EBAY_OFFER_URL}`, requestBody, {
+            headers: {
+                Authorization: `Bearer ${EBAY_ACCESS_TOKEN}`,
+                "Content-Type": "application/json",
+                "Accept-Language": "en-GB",
+                "Content-Language": "en-GB",
+            },
+        });
 
-//             const result = await createEbaySku(sku, quantity);
-//             results.push(result);
-//         }
+        console.log(`Offer created successfully for SKU: ${itemCode}`);
+        return { success: true, offerId: response.data.offerId };
+    } catch (error) {
+        console.error(`Error creating offer for SKU: ${itemCode}`, error.response?.data || error.message);
+        return { success: false, error: error.message };
+    }
+}
 
-//         console.log("All SKUs processed:");
+// Publish the offer
+async function publishOffer(offerId, itemCode) {
+    try {
+        const response = await axios.post(`${EBAY_OFFER_URL}/${offerId}/publish`, {}, {
+            headers: {
+                Authorization: `Bearer ${EBAY_ACCESS_TOKEN}`,
+                "Accept-Language": "en-GB",
+                "Content-Language": "en-GB",
+            },
+        });
 
-//         fs.writeFileSync("sandbox_sku_creation_results.json", JSON.stringify(results, null, 2));
-//     } catch (error) {
-//         console.error("Error processing SKU results file:", error.message);
-//     }
-// }
+        console.log(`Offer for SKU: ${itemCode} published successfully.`);
+        return { success: true };
+    } catch (error) {
+        console.error(`Error publishing offer for SKU: ${itemCode}`, error.response?.data || error.message);
+        return { success: false, error: error.message };
+    }
+}
 
-// //call to function with the input file
-// processSkuResults("sku_results.json");
+// Process items from JSON and list on eBay
+async function processAndPublishItems() {
+    console.log("Starting eBay item upload process...");
+    
+    const items = readItemDetails();
+    if (items.length === 0) {
+        console.log("No items found in item_details.json");
+        return;
+    }
+
+    for (const item of items) {
+        console.log(`Processing SKU: ${item.itemCode}`);
+
+        // Step 1: Create Inventory Item
+        const inventoryResult = await createInventoryItem(item);
+        if (!inventoryResult.success) {
+            console.error(`Skipping SKU: ${item.itemCode} due to inventory item creation failure.`);
+            continue;
+        }
+
+        // Step 2: Create Offer
+        const offerResult = await createOffer(item);
+        if (!offerResult.success) {
+            console.error(`Skipping SKU: ${item.itemCode} due to offer creation failure.`);
+            continue;
+        }
+
+        // Step 3: Publish Offer
+        // const publishResult = await publishOffer(645450805016, item.itemCode);
+        // if (!publishResult.success) {
+        //     console.error(`Skipping SKU: ${item.itemCode} due to offer publication failure.`);
+        //     continue;
+        // }
+
+        console.log(`Item ${item.itemCode} successfully listed on eBay!`);
+    }
+}
+
+// Run the script
+processAndPublishItems();

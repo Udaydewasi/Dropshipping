@@ -8,7 +8,7 @@ let EBAY_ACCESS_TOKEN = null;
 async function token() {
     try{
         EBAY_ACCESS_TOKEN = await generateAccessToken();
-        console.log(`Access Token is : ${EBAY_ACCESS_TOKEN}`);
+        // console.log(`Access Token is : ${EBAY_ACCESS_TOKEN}`);
     }catch{
         console.log("Error while token genrating");
     }
@@ -20,17 +20,18 @@ async function token() {
 // })();
 
 async function updateEbayItemQuantity(offerId, sku, quantity) {
+    
     const requestBody = {
             "requests": [
-                { 
+                {
                 "offers": [
-                    { 
-                    "availableQuantity": 0,
+                    {
+                    "availableQuantity": quantity,
                     "offerId": offerId
                     }
                   ],
                 "shipToLocationAvailability":
-                    { 
+                    {
                     "quantity": quantity
                     },
                 "sku": sku
@@ -51,7 +52,7 @@ async function updateEbayItemQuantity(offerId, sku, quantity) {
         });
 
         const responseData = await response.json();
-        console.log(responseData);
+        // console.log(responseData);
 
         if (response.ok) {
             console.log(`Successfully updated SKU ${sku} with quantity ${quantity}`);
@@ -69,13 +70,14 @@ async function processSkuResults(filePath) {
 
         const results = [];
         for (const { offerId, sku, quantity} of skuResults) {
-            if (quantity === null || quantity < 0) {
+            let newq = quantity - 10;
+            if (newq === null || newq < 0) {
                 console.log(`Changed the quantity for SKU: ${sku} due to invalid value`);
-                quantity = 0;
+                newq = 0;
             }
 
-            await updateEbayItemQuantity(offerId, sku, quantity);
-            results.push({ sku, quantity});
+            await updateEbayItemQuantity(offerId, sku, newq);
+            results.push({ sku, newq});
         }
 
         console.log("All SKUs processed successfully.");

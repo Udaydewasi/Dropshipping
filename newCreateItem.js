@@ -4,10 +4,15 @@ const EBAY_INVENTORY_URL = "https://api.ebay.com/sell/inventory/v1/inventory_ite
 const EBAY_OFFER_URL = "https://api.ebay.com/sell/inventory/v1/offer";
 // const EBAY_ACCESS_TOKEN = process.env.EBAY_ACCESS_TOKEN;
 const generateAccessToken = require('./accessTokenGen');
-
-//accesstoken generatoin before of the item creation
-const EBAY_ACCESS_TOKEN = generateAccessToken();
-
+let EBAY_ACCESS_TOKEN = null;
+async function token() {
+    try{
+        EBAY_ACCESS_TOKEN = await generateAccessToken();
+        console.log(`Access Token is : ${EBAY_ACCESS_TOKEN}`);
+    }catch{
+        console.log("Error while token genrating");
+    }
+}
 // Create inventory item
 async function createInventoryItem(sku, title, description, price, quantity, imageUrl, categoryID, condition) {
     const requestBody = {
@@ -176,7 +181,7 @@ async function createAndPublishItem({
 
 // Example Usage
 const itemData = {
-    sku: "",
+    sku: "testsku6",
     title: "TEST Product for eBay",
     description: "This is a sample product created via eBay API.",
     price: 19.99,
@@ -186,4 +191,7 @@ const itemData = {
     condition: "NEW",
 };
 
-createAndPublishItem(itemData);
+(async () => {
+    await token(); // Wait for token generation
+    await createAndPublishItem(itemData); // Process after token is ready
+  })();
