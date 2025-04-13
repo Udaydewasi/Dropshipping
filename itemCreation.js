@@ -8,7 +8,17 @@ const EBAY_OFFER_URL = "https://api.ebay.com/sell/inventory/v1/offer";
 // const generateAccessToken = require("./accessTokenGen");
 
 // Generate eBay Access Token
-const EBAY_ACCESS_TOKEN = process.env.EBAY_ACCESS_TOKEN;
+// const EBAY_ACCESS_TOKEN = process.env.EBAY_ACCESS_TOKEN;
+const generateAccessToken = require('./accessTokenGen');
+let EBAY_ACCESS_TOKEN = null;
+async function token() {
+    try{
+        EBAY_ACCESS_TOKEN = await generateAccessToken();
+        // console.log(`Access Token is : ${EBAY_ACCESS_TOKEN}`);
+    }catch{
+        console.log("Error while token genrating");
+    }
+}
 
 // File path for item details
 const itemDetailsPath = path.join(__dirname, "item_details.json");
@@ -26,10 +36,9 @@ const readItemDetails = () => {
 
 // Create inventory item
 async function createInventoryItem(item) {
-    const { itemCode, title, description, roundedPrice, images, categoryId, quantity} = item;
-
-    if (!itemCode || !title || !description || !roundedPrice || !images.length || !categoryId) {
-        console.log(itemCode, title, description, price, images, categoryId);
+    const { itemCode, title, aspects, description, roundedPrice, images, categoryId, quantity} = item;
+    if (!itemCode || !title || !description || !roundedPrice || !images.length || !categoryId || !aspects) {
+        console.log(itemCode, title, aspects, description, price, images, categoryId);
         console.error(`Missing required fields for item: ${itemCode}`);
         return { success: false };
     }
@@ -40,9 +49,7 @@ async function createInventoryItem(item) {
         "product": {
             "title":title,
             "description": description,
-            "aspects": {
-                "Brand": ["Generic"],
-            },
+            "aspects": aspects,
             "imageUrls": images,
         },
         "availability": {
@@ -85,7 +92,7 @@ async function createOffer(item) {
     }else{
         stockQuantity -= 10;
     }
-
+    
     const requestBody = {
         "sku": itemCode,
         "marketplaceId": "EBAY_GB",
@@ -103,11 +110,9 @@ async function createOffer(item) {
             },
         },
         "categoryId": categoryId,
-        "merchantLocationKey": "GB_LONDON",
-        "quantityLimitPerBuyer": 1,
-        "includeCatalogProductDetails": true,
+        "merchantLocationKey": "GB_LONDON"
     };
-
+    
     try {
         const response = await axios.post(`${EBAY_OFFER_URL}`, requestBody, {
             headers: {
@@ -117,7 +122,7 @@ async function createOffer(item) {
                 "Content-Language": "en-GB",
             },
         });
-
+        
         console.log(`Offer created successfully for SKU: ${itemCode}`);
         return { success: true, offerId: response.data.offerId };
     } catch (error) {
@@ -129,7 +134,12 @@ async function createOffer(item) {
 // Publish the offer
 async function publishOffer(offerId, itemCode) {
     try {
-        const response = await axios.post(`${EBAY_OFFER_URL}/${offerId}/publish`, {}, {
+        
+        const response = await axios.post(`${EBAY_OFFER_URL}/${offerId}/publish`, {
+            "Status": "Draft",
+            "listingStartDate": "2025-02-15T10:00:00.000Z"
+          }
+          , {
             headers: {
                 Authorization: `Bearer ${EBAY_ACCESS_TOKEN}`,
                 "Accept-Language": "en-GB",
@@ -166,22 +176,27 @@ async function processAndPublishItems() {
         }
 
         // Step 2: Create Offer
-        const offerResult = await createOffer(item);
+       const offerResult = await createOffer(item);
         if (!offerResult.success) {
-            console.error(`Skipping SKU: ${item.itemCode} due to offer creation failure.`);
-            continue;
+           console.error(`Skipping SKU: ${item.itemCode} due to offer creation failure.`);
+           continue;
         }
-
+        console.log("offer id :", offerResult.offerId);
         // Step 3: Publish Offer
-        // const publishResult = await publishOffer(645450805016, item.itemCode);
-        // if (!publishResult.success) {
-        //     console.error(`Skipping SKU: ${item.itemCode} due to offer publication failure.`);
-        //     continue;
-        // }
+        const publishResult = await publishOffer(offerResult.offerId, item.itemCode);
+        if (!publishResult.success) {
+            console.error(`Skipping SKU: ${item.itemCode} due to offer publication failure.`);
+           continue;
+        }
 
         console.log(`Item ${item.itemCode} successfully listed on eBay!`);
     }
 }
 
 // Run the script
-processAndPublishItems();
+// processAndPublishItems();
+
+(async () => {
+    await token(); // Wait for token generation
+    await processAndPublishItems(); // Process after token is ready
+  })();

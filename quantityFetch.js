@@ -2,10 +2,21 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: '/home/uday/Dropshipping/.env' });
 const QUANTITY_FETCH_URL = process.env.QUANTITY_FETCH_URL;
-const EBAY_ACCESS_TOKEN = process.env.EBAY_ACCESS_TOKEN;
+
+const generateAccessToken = require('./accessTokenGen');
+let EBAY_ACCESS_TOKEN = null;
+async function token() {
+    try{
+        EBAY_ACCESS_TOKEN = await generateAccessToken();
+        // console.log(`Access Token is : ${EBAY_ACCESS_TOKEN}`);
+    }catch{
+        console.log("Error while token genrating");
+    }
+}
 
 async function fetchProductQuantity(sku) {
     const url = `${QUANTITY_FETCH_URL}/${sku}/?fields=stock`;
+    let offerId = null; // Initialize offerId to null
 
     try {
         const response = await fetch(url);
@@ -16,7 +27,7 @@ async function fetchProductQuantity(sku) {
 
         const data = await response.json();
 
-        const offerResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer?sku=${sku}`,{
+        const offerResponse = await fetch(`https://api.ebay.com/sell/inventory/v1/offer?sku=${sku}`, {
             method: "GET",
             headers: {
                 Authorization: `Bearer ${EBAY_ACCESS_TOKEN}`,
@@ -25,20 +36,27 @@ async function fetchProductQuantity(sku) {
             },
         });
 
-        const offerData = await offerResponse.json();
-        
-        const offerId = offerData.offers[0].offerId;
-        console.log(offerId);
-
-        if (data.stock && data.stock.stockLevel !== undefined) {
-            return {offerId, sku, quantity: data.stock.stockLevel };
+        if (offerResponse.ok) {
+            const offerData = await offerResponse.json();
+            // Check if offers array exists and has at least one element
+            if (offerData.offers && offerData.offers.length > 0) {
+                offerId = offerData.offers[0].offerId;
+            } else {
+                console.error(`No offers found for SKU: ${sku}`);
+            }
         } else {
-            console.error(`Stock information is not available for SKU: ${sku}`);
-            return {offerId, sku, quantity: null };
+            console.error(`Error fetching offers for SKU: ${sku} - Status: ${offerResponse.status}`);
+        }
+        console.log(offerId)
+        if (data.stock && data.stock.stockLevel !== undefined) {
+            return { offerId, sku, quantity: data.stock.stockLevel };
+        } else {
+            console.error(`Stock information unavailable for SKU: ${sku}`);
+            return { offerId, sku, quantity: null };
         }
     } catch (error) {
-        console.error(`Error fetching product quantity for SKU: ${sku}`, error.message);
-        return {offerId, sku, quantity: null};
+        console.error(`Error processing SKU: ${sku}`, error.message);
+        return { offerId, sku, quantity: null }; // offerId is always defined
     }
 }
 
@@ -63,4 +81,9 @@ async function processSkuList(filePath) {
 
 
 const skuFilePath = path.join(__dirname, 'skus.txt');
-processSkuList(skuFilePath);
+// processSkuList(skuFilePath);
+
+(async () => {
+    await token(); // Wait for token generation
+    await processSkuList("/home/uday/Dropshipping/skus.txt"); // Process after token is ready
+  })();

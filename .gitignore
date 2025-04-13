@@ -13,7 +13,14 @@ skus.txt
 
 cron.log
 
+newDropshipping/
+Variation.item/
+EbayInventorySetup.zip
+general.txt
 quantity_update_results.json
 
 item_details.json
 itemcode.txt
+
+test.js
+UK_New_Structure_(May2023).csv
